@@ -6,15 +6,16 @@ function omitPrivateCsv(): Plugin {
   return {
     name: "omit-private-csv",
     closeBundle() {
-      const dir = join("dist", "data");
+      const dataDir = join("dist", "data");
       try {
-        for (const name of readdirSync(dir)) {
+        for (const name of readdirSync(dataDir)) {
           if (name === "sample.csv") continue;
-          rmSync(join(dir, name), { force: true });
+          rmSync(join(dataDir, name), { force: true, recursive: true });
         }
       } catch {
         // dist/data may not exist in a clean build
       }
+      rmSync(join("dist", "xuanxuan-hua-xiao"), { force: true, recursive: true });
     },
   };
 }
