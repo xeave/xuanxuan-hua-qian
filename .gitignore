@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+*.local
+
+# Real expense ledgers — never commit
+data/expenses.csv
+public/data/expenses.csv
+public/data/*.csv
+!public/data/sample.csv
+*.numbers
+.env
+.env.*
