@@ -9,7 +9,6 @@ function omitPrivateCsv(): Plugin {
       const dataDir = join("dist", "data");
       try {
         for (const name of readdirSync(dataDir)) {
-          if (name === "sample.csv") continue;
           rmSync(join(dataDir, name), { force: true, recursive: true });
         }
       } catch {

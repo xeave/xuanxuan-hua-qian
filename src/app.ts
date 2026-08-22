@@ -66,7 +66,7 @@ fileInput.addEventListener("change", () => {
 
 const state: State = {
   expenses: [],
-  source: "sample",
+  source: "empty",
   month: defaultMonthKey([]),
   category: null,
   banner: null,
@@ -96,20 +96,14 @@ function catIcon(category: string): HTMLElement {
 function coverageNote(): string | null {
   const months = navigableMonths(state.expenses);
   if (!months.length) return null;
-  if (state.source === "sample") {
-    return "现在是示例账，不是你的账单。点右上角导入 CSV，可一次选多个月。";
-  }
   if (state.source === "local-file") {
     return `${formatMonthLabel(months[0])} – ${formatMonthLabel(months[months.length - 1])} · 本地`;
   }
   return null;
 }
 
-function sampleBanner(): HTMLElement | null {
-  if (state.source !== "sample") return null;
-  return el("p", { class: "banner-sample" }, [
-    "这是示例账。电脑导入的数据只存在那台电脑的浏览器里，手机看不到。请在电脑点「导出」，把文件发到手机后再点「导入」。",
-  ]);
+function hasSavedLedger(): boolean {
+  return state.source !== "empty" && state.expenses.length > 0;
 }
 
 function csvCell(value: string): string {
@@ -118,7 +112,7 @@ function csvCell(value: string): string {
 }
 
 function exportLedger(): void {
-  if (!state.expenses.length || state.source === "sample") return;
+  if (!hasSavedLedger()) return;
   const lines = ["日期,账目明细,金额,备注,支付方式"];
   const rows = [...state.expenses].sort((a, b) => (a.date < b.date ? -1 : 1));
   for (const item of rows) {
@@ -144,7 +138,7 @@ function exportLedger(): void {
 function renderNavActions(): HTMLElement {
   const wrap = el("div", { class: "nav-actions" });
   wrap.append(el("label", { class: "nav-action", for: "csv-import" }, ["导入"]));
-  if (state.source !== "sample" && state.expenses.length) {
+  if (hasSavedLedger()) {
     const button = el("button", { class: "nav-action", type: "button" }, ["导出"]);
     button.addEventListener("click", exportLedger);
     wrap.append(button);
@@ -156,7 +150,7 @@ async function importFiles(files: File[]): Promise<void> {
   const expenses: Expense[] = [];
   const seen = new Set<string>();
   const errors: string[] = [];
-  if (state.source !== "sample") {
+  if (hasSavedLedger()) {
     for (const item of state.expenses) {
       seen.add(expenseKey(item));
       expenses.push(item);
@@ -176,7 +170,7 @@ async function importFiles(files: File[]): Promise<void> {
       expenses.push(item);
     }
   }
-  const baseCount = state.source === "sample" ? 0 : state.expenses.length;
+  const baseCount = hasSavedLedger() ? state.expenses.length : 0;
   if (expenses.length <= baseCount) {
     state.banner = { kind: "error", text: errors[0] || "导入失败，请在文件 App 里选导出的 CSV" };
     paint();
@@ -453,9 +447,6 @@ function renderStats(): void {
     }
     trend.append(bars);
   }
-  const sample = sampleBanner();
-  if (sample) page.append(sample);
-
   page.append(trend);
 
   const insight = el("section", { class: "insights" });
@@ -604,8 +595,6 @@ function render(): void {
   const page = el("div", { class: "page" }, [
     el("div", { class: "masthead" }, [nav, period, hero]),
   ]);
-  const sample = sampleBanner();
-  if (sample) page.append(sample);
   if (state.banner && (state.banner.kind === "error" || state.banner.kind === "success")) {
     page.append(
       el("p", { class: `toast toast-${state.banner.kind}` }, [state.banner.text]),

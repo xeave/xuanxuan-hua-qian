@@ -6,7 +6,7 @@ export type Expense = {
   payMethod: string;
 };
 
-export type DataSource = "local-file" | "indexeddb" | "sample";
+export type DataSource = "local-file" | "indexeddb" | "empty";
 
 export type MonthKey = string | "all";
 
@@ -23,6 +23,6 @@ export type ParseResult = {
 };
 
 export type Banner = {
-  kind: "sample" | "success" | "error" | "info";
+  kind: "success" | "error" | "info";
   text: string;
 };

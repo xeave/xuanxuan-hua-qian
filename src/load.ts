@@ -61,12 +61,30 @@ const RETIRED_SAMPLE_KEYS = new Set([
   "2026-08-06|娱乐|90|游戏会员|支付宝",
   "2026-08-04|餐饮|38|晚饭 食堂|微信",
   "2026-08-02|交通|12|地铁月通勤补票|微信",
+  "2026-07-30|餐饮|58|晚饭 烧烤|支付宝",
+  "2026-07-28|日用|210|超市囤货|银行卡",
+  "2026-07-25|餐饮|16|早饭|微信",
+  "2026-07-22|交通|36|打车去车站|微信",
+  "2026-07-20|娱乐|99|展览门票|支付宝",
+  "2026-07-18|餐饮|72|午饭 同事聚餐|支付宝",
+  "2026-07-15|医疗|48|体检复查挂号|微信",
+  "2026-07-12|日用|24|纸巾洗衣液|微信",
+  "2026-07-10|餐饮|19.9|咖啡|微信",
+  "2026-07-08|交通|6|地铁|微信",
+  "2026-07-06|住房|150|宽带|银行卡",
+  "2026-07-04|餐饮|33|晚饭|支付宝",
+  "2026-06-28|餐饮|41|午饭|支付宝",
+  "2026-06-25|娱乐|88|演唱会周边|微信",
+  "2026-06-22|交通|27|打车|微信",
+  "2026-06-18|日用|63.8|水果零食|微信",
+  "2026-06-15|餐饮|22|早饭+咖啡|微信",
+  "2026-06-12|医疗|18|创可贴创可贴不够又买了|微信",
+  "2026-06-08|餐饮|55|晚饭|支付宝",
+  "2026-06-03|交通|9|公交|微信",
 ]);
 
-function isDemoLedger(stored: Expense[], sample: Expense[]): boolean {
-  if (!stored.length) return false;
-  const demoKeys = new Set([...sample.map(expenseKey), ...RETIRED_SAMPLE_KEYS]);
-  return stored.every((item) => demoKeys.has(expenseKey(item)));
+function isDemoLedger(stored: Expense[]): boolean {
+  return stored.length > 0 && stored.every((item) => RETIRED_SAMPLE_KEYS.has(expenseKey(item)));
 }
 
 export async function loadLedger(): Promise<LoadedLedger> {
@@ -87,19 +105,13 @@ export async function loadLedger(): Promise<LoadedLedger> {
     return { expenses, source: "local-file" };
   }
 
-  const sampleText = await tryFetchCsv(`./data/sample.csv?v=20260822`);
-  const sample = sampleText ? parseCsv(sampleText).expenses : [];
   const stored = await loadStoredExpenses();
-  if (stored?.length && !isDemoLedger(stored, sample)) {
+  if (stored?.length && !isDemoLedger(stored)) {
     return { expenses: stored, source: "indexeddb" };
   }
   if (stored?.length) {
     void clearStoredExpenses();
   }
 
-  if (sample.length) {
-    return { expenses: sample, source: "sample" };
-  }
-
-  return { expenses: [], source: "sample" };
+  return { expenses: [], source: "empty" };
 }
