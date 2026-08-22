@@ -51,3 +51,17 @@ export async function saveExpenses(expenses: Expense[]): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function clearStoredExpenses(): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // ignore
+  }
+}
