@@ -1,7 +1,7 @@
 import type { Expense } from "./types";
 
 const DB_NAME = "huaqian";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "ledger";
 const KEY = "current";
 
@@ -15,9 +15,8 @@ function openDb(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE);
-      }
+      if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
+      db.createObjectStore(STORE);
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
