@@ -236,18 +236,30 @@ function clipNote(note: string): string {
   return text.length > 18 ? `${text.slice(0, 18)}…` : text;
 }
 
+function tabIcon(kind: "ledger" | "stats"): HTMLElement {
+  const wrap = el("span", { class: "tab-icon" });
+  wrap.innerHTML =
+    kind === "ledger"
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.2"/><path d="M8 8.5h8M8 12.5h8M8 16.5h5"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6"/><path d="M3 19h18"/></svg>';
+  return wrap;
+}
+
+function renderTab(kind: "ledger" | "stats", label: string): HTMLButtonElement {
+  const on = state.view === kind;
+  const button = el("button", {
+    class: on ? "tab is-on" : "tab",
+    type: "button",
+    "aria-current": on ? "page" : "false",
+  });
+  button.append(tabIcon(kind), el("span", { class: "tab-label" }, [label]));
+  return button;
+}
+
 function renderTabs(): HTMLElement {
-  const bar = el("nav", { class: "tabbar" });
-  const ledger = el(
-    "button",
-    { class: state.view === "ledger" ? "tab is-on" : "tab", type: "button" },
-    ["账单"],
-  );
-  const stats = el(
-    "button",
-    { class: state.view === "stats" ? "tab is-on" : "tab", type: "button" },
-    ["统计"],
-  );
+  const bar = el("nav", { class: "tabbar", "aria-label": "页面" });
+  const ledger = renderTab("ledger", "账单");
+  const stats = renderTab("stats", "统计");
   ledger.addEventListener("click", () => {
     state.view = "ledger";
     state.openItem = null;
