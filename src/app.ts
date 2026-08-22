@@ -108,8 +108,48 @@ function coverageNote(): string | null {
 function sampleBanner(): HTMLElement | null {
   if (state.source !== "sample") return null;
   return el("p", { class: "banner-sample" }, [
-    "当前是示例数据（约 38 笔）。GitHub 网页不会带上你的真实 CSV，请点右上角「导入」，一次可选多个月份文件。",
+    "这是示例账。电脑导入的数据只存在那台电脑的浏览器里，手机看不到。请在电脑点「导出」，把文件发到手机后再点「导入」。",
   ]);
+}
+
+function csvCell(value: string): string {
+  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
+function exportLedger(): void {
+  if (!state.expenses.length || state.source === "sample") return;
+  const lines = ["日期,账目明细,金额,备注,支付方式"];
+  const rows = [...state.expenses].sort((a, b) => (a.date < b.date ? -1 : 1));
+  for (const item of rows) {
+    lines.push(
+      [
+        item.date,
+        csvCell(item.category),
+        String(item.amount),
+        csvCell(item.note),
+        csvCell(item.payMethod),
+      ].join(","),
+    );
+  }
+  const blob = new Blob([`\uFEFF${lines.join("\n")}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = el("a", { href: url, download: "花销账本.csv" });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderNavActions(): HTMLElement {
+  const wrap = el("div", { class: "nav-actions" });
+  wrap.append(el("label", { class: "nav-action", for: "csv-import" }, ["导入"]));
+  if (state.source !== "sample" && state.expenses.length) {
+    const button = el("button", { class: "nav-action", type: "button" }, ["导出"]);
+    button.addEventListener("click", exportLedger);
+    wrap.append(button);
+  }
+  return wrap;
 }
 
 async function importFiles(files: File[]): Promise<void> {
@@ -319,7 +359,7 @@ function renderStats(): void {
 
   const nav = el("header", { class: "nav" }, [
     el("h1", { class: "nav-title" }, ["统计"]),
-    el("label", { class: "nav-action", for: "csv-import" }, ["导入"]),
+    renderNavActions(),
   ]);
 
   const yearsRow = el("div", { class: "years" });
@@ -482,7 +522,7 @@ function render(): void {
 
   const nav = el("header", { class: "nav" }, [
     el("h1", { class: "nav-title" }, ["账单"]),
-    el("label", { class: "nav-action", for: "csv-import" }, ["导入"]),
+    renderNavActions(),
   ]);
 
   const period = el("div", { class: "period" });

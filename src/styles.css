@@ -65,6 +65,11 @@ button {
   font-weight: 600;
 }
 
+.nav-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .nav-action {
   display: inline-flex;
   align-items: center;
