@@ -272,22 +272,47 @@ function renderTabs(): HTMLElement {
   return bar;
 }
 
+function memoRow(label: string, value: string, wide = false): HTMLElement {
+  return el("div", { class: wide ? "memo-row memo-row-wide" : "memo-row" }, [
+    el("span", { class: "memo-row-label" }, [label]),
+    el("span", { class: "memo-row-value" }, [value]),
+  ]);
+}
+
 function renderMemo(item: Expense): HTMLElement {
   const page = el("div", { class: "memo" });
-  const back = el("button", { class: "memo-back", type: "button" }, ["返回"]);
+  const back = el("button", { class: "memo-back", type: "button" }, ["‹ 返回"]);
   back.addEventListener("click", closeSheet);
-  const meta = [item.category, formatDayHeading(item.date, true)];
-  if (item.payMethod) meta.push(item.payMethod);
+  const title = item.note.trim() || item.category;
+  const parts = splitYuan(item.amount);
+  const icon = catIcon(item.category);
+  icon.className = "memo-icon";
+  const rows = el("section", { class: "memo-card" });
+  rows.append(
+    memoRow("分类", item.category),
+    memoRow("时间", formatDayHeading(item.date, true)),
+    memoRow("支付", item.payMethod.trim() || "未填写"),
+    memoRow("金额", formatYuan(item.amount)),
+    memoRow("备注", item.note.trim() || "没有写备注", true),
+  );
   page.append(
-    el("header", { class: "memo-nav" }, [back]),
-    el("div", { class: "memo-hero" }, [
-      el("div", { class: "memo-amount" }, [`-${formatYuan(item.amount)}`]),
-      el("div", { class: "memo-meta" }, [meta.join(" · ")]),
+    el("div", { class: "memo-head" }, [
+      el("header", { class: "memo-nav" }, [
+        back,
+        el("h1", { class: "memo-title" }, ["详情"]),
+        el("span", { class: "memo-nav-space" }),
+      ]),
+      el("div", { class: "memo-hero" }, [
+        icon,
+        el("div", { class: "memo-amount" }, [
+          el("span", { class: "memo-yen" }, ["-¥"]),
+          el("span", { class: "memo-int" }, [parts.int]),
+          el("span", { class: "memo-dec" }, [`.${parts.dec}`]),
+        ]),
+        el("div", { class: "memo-summary" }, [title]),
+      ]),
     ]),
-    el("section", { class: "memo-card" }, [
-      el("div", { class: "memo-label" }, ["备注"]),
-      el("p", { class: "memo-note" }, [item.note.trim() || "没有写备注"]),
-    ]),
+    rows,
   );
   return page;
 }
