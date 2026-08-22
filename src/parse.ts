@@ -26,6 +26,7 @@ const CATEGORY_ALIASES = new Set([
   "科目",
   "账目明细",
   "项目",
+  "明细",
 ]);
 const NOTE_ALIASES = new Set(["note", "备注", "说明", "内容", "摘要", "事项"]);
 const PAY_ALIASES = new Set([
@@ -109,7 +110,18 @@ function cell(row: Record<string, string>, key: string): string {
   return (row[key] ?? "").trim();
 }
 
-export function parseCsv(text: string): ParseResult {
+export function decodeCsvBytes(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return new TextDecoder("utf-16le").decode(bytes);
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    return new TextDecoder("utf-16be").decode(bytes);
+  }
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+export function parseCsv(text: string, retried = false): ParseResult {
   const errors: ParseError[] = [];
   const trimmed = text.replace(/^\uFEFF/, "").trim();
   if (!trimmed) {
@@ -124,6 +136,7 @@ export function parseCsv(text: string): ParseResult {
   const parsed = Papa.parse<Record<string, string>>(trimmed, {
     header: true,
     skipEmptyLines: "greedy",
+    delimiter: "",
     transformHeader: (h) => h.replace(/^\uFEFF/, "").trim(),
   });
 
@@ -153,6 +166,10 @@ export function parseCsv(text: string): ParseResult {
   if (!mapped.amount) missing.push("金额（amount）");
   if (!mapped.category) missing.push("分类（category）");
   if (missing.length) {
+    if (!retried) {
+      const lines = trimmed.split(/\r?\n/);
+      if (lines.length > 2) return parseCsv(lines.slice(1).join("\n"), true);
+    }
     return {
       expenses: [],
       errors: [

@@ -66,6 +66,8 @@ button {
 }
 
 .nav-action {
+  display: inline-flex;
+  align-items: center;
   height: 32px;
   padding: 0 12px;
   border-radius: 16px;
@@ -594,7 +596,11 @@ button {
 }
 
 .file-input {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
 }
 
 @media (min-width: 480px) {

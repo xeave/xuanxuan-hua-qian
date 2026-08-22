@@ -26,7 +26,7 @@ import {
   splitYuan,
 } from "./format";
 import { expenseKey, loadLedger } from "./load";
-import { parseCsv } from "./parse";
+import { decodeCsvBytes, parseCsv } from "./parse";
 import { saveExpenses } from "./store";
 import type { Banner, DataSource, Expense, MonthKey } from "./types";
 
@@ -53,8 +53,9 @@ const root = requireApp();
 
 const fileInput = el("input", {
   class: "file-input",
+  id: "csv-import",
   type: "file",
-  accept: ".csv,text/csv,text/plain",
+  accept: "*/*",
   multiple: "multiple",
 });
 fileInput.addEventListener("change", () => {
@@ -115,10 +116,17 @@ async function importFiles(files: File[]): Promise<void> {
   const expenses: Expense[] = [];
   const seen = new Set<string>();
   const errors: string[] = [];
+  if (state.source !== "sample") {
+    for (const item of state.expenses) {
+      seen.add(expenseKey(item));
+      expenses.push(item);
+    }
+  }
   for (const file of files) {
-    const result = parseCsv(await file.text());
+    const text = decodeCsvBytes(await file.arrayBuffer());
+    const result = parseCsv(text);
     if (!result.expenses.length) {
-      errors.push(`${file.name}：${result.errors[0]?.message || "没有解析到花销"}`);
+      errors.push(`${file.name || "未命名文件"}：${result.errors[0]?.message || "没有解析到花销"}`);
       continue;
     }
     for (const item of result.expenses) {
@@ -128,24 +136,31 @@ async function importFiles(files: File[]): Promise<void> {
       expenses.push(item);
     }
   }
-  if (!expenses.length) {
-    state.banner = { kind: "error", text: errors[0] || "导入失败" };
+  const baseCount = state.source === "sample" ? 0 : state.expenses.length;
+  if (expenses.length <= baseCount) {
+    state.banner = { kind: "error", text: errors[0] || "导入失败，请在文件 App 里选导出的 CSV" };
     paint();
     return;
   }
   expenses.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  await saveExpenses(expenses);
+  try {
+    await saveExpenses(expenses);
+  } catch {
+    errors.push("手机没能记住这笔账，关掉网页后可能要再导入一次");
+  }
   state.expenses = expenses;
   state.source = "indexeddb";
   state.category = null;
   state.month = defaultMonthKey(expenses);
   state.year = "all";
-  const extra = errors.length ? `。${errors.length} 个文件没读成` : "";
+  state.view = "ledger";
+  const extra = errors.length ? `。${errors.join("；")}` : "";
   state.banner = {
     kind: "success",
-    text: `已导入 ${expenses.length} 笔，来自 ${files.length} 个文件${extra}`,
+    text: `已导入 ${expenses.length} 笔${extra}`,
   };
   paint();
+  window.scrollTo(0, 0);
 }
 
 function goMonth(delta: number): void {
@@ -304,11 +319,8 @@ function renderStats(): void {
 
   const nav = el("header", { class: "nav" }, [
     el("h1", { class: "nav-title" }, ["统计"]),
-    el("button", { class: "nav-action", type: "button" }, ["导入"]),
+    el("label", { class: "nav-action", for: "csv-import" }, ["导入"]),
   ]);
-  (nav.querySelector(".nav-action") as HTMLButtonElement).addEventListener("click", () => {
-    fileInput.click();
-  });
 
   const yearsRow = el("div", { class: "years" });
   const allYear = el(
@@ -470,10 +482,8 @@ function render(): void {
 
   const nav = el("header", { class: "nav" }, [
     el("h1", { class: "nav-title" }, ["账单"]),
-    el("button", { class: "nav-action", type: "button" }, ["导入"]),
+    el("label", { class: "nav-action", for: "csv-import" }, ["导入"]),
   ]);
-  const importBtn = nav.querySelector(".nav-action") as HTMLButtonElement;
-  importBtn.addEventListener("click", () => fileInput.click());
 
   const period = el("div", { class: "period" });
   const prev = el("button", { class: "period-btn", type: "button", "aria-label": "上个月" }, ["‹"]);
