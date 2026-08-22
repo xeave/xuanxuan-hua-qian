@@ -8,6 +8,7 @@ data/expenses.csv
 public/data/expenses.csv
 public/data/*.csv
 !public/data/sample.csv
+public/xuanxuan-hua-xiao/
 *.numbers
 .env
 .env.*
