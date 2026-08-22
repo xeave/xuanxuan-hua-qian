@@ -146,6 +146,14 @@ function renderNavActions(): HTMLElement {
   return wrap;
 }
 
+function renderPageHead(title: string): HTMLElement {
+  return el("header", { class: "nav" }, [
+    el("span", { class: "nav-side" }),
+    el("h1", { class: "nav-title" }, [title]),
+    renderNavActions(),
+  ]);
+}
+
 async function importFiles(files: File[]): Promise<void> {
   const expenses: Expense[] = [];
   const seen = new Set<string>();
@@ -388,10 +396,7 @@ function renderStats(): void {
   const years = yearsInData(state.expenses);
   const maxBar = Math.max(...months.map((row) => row.amount), 1);
 
-  const nav = el("header", { class: "nav" }, [
-    el("h1", { class: "nav-title" }, ["统计"]),
-    renderNavActions(),
-  ]);
+  const nav = renderPageHead("统计");
 
   if (!state.expenses.length) {
     const emptyPage = el("div", { class: "page" }, [
@@ -560,10 +565,7 @@ function render(): void {
   const showYear = state.month === "all";
   const note = coverageNote();
 
-  const nav = el("header", { class: "nav" }, [
-    el("h1", { class: "nav-title" }, ["账单"]),
-    renderNavActions(),
-  ]);
+  const nav = renderPageHead("账单");
 
   if (!state.expenses.length) {
     const page = el("div", { class: "page" }, [
