@@ -1,14 +1,35 @@
 import type { Expense } from "./types";
 
 const DB_NAME = "huaqian";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = "ledger";
 const KEY = "current";
+const RESET_FLAG = "huaqian-reset-20260822e";
 
 type Payload = {
   expenses: Expense[];
   importedAt: number;
 };
+
+export async function resetLegacyBrowserLedger(): Promise<void> {
+  try {
+    if (localStorage.getItem(RESET_FLAG) === "1") return;
+  } catch {
+    // keep going
+  }
+  await new Promise<void>((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => resolve();
+    req.onblocked = () => resolve();
+    setTimeout(resolve, 600);
+  });
+  try {
+    localStorage.setItem(RESET_FLAG, "1");
+  } catch {
+    // ignore
+  }
+}
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

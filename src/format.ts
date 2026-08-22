@@ -1,11 +1,5 @@
 import type { Expense, MonthKey } from "./types";
 
-export function currentMonthKey(now = new Date()): string {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-}
-
 export function monthFromDate(iso: string): string {
   return iso.slice(0, 7);
 }
@@ -81,10 +75,7 @@ export function navigableMonths(expenses: Expense[]): string[] {
   return [...new Set(expenses.map((e) => monthFromDate(e.date)))].sort();
 }
 
-export function defaultMonthKey(
-  expenses: Expense[],
-  fallback = currentMonthKey(),
-): string {
+export function defaultMonthKey(expenses: Expense[]): MonthKey {
   const months = navigableMonths(expenses);
-  return months[months.length - 1] ?? fallback;
+  return months[months.length - 1] ?? "all";
 }

@@ -1,5 +1,5 @@
 import { parseCsv } from "./parse";
-import { clearStoredExpenses, loadStoredExpenses } from "./store";
+import { clearStoredExpenses, loadStoredExpenses, resetLegacyBrowserLedger } from "./store";
 import type { DataSource, Expense } from "./types";
 
 export type LoadedLedger = {
@@ -100,6 +100,7 @@ function isDemoLedger(stored: Expense[]): boolean {
 }
 
 export async function loadLedger(): Promise<LoadedLedger> {
+  await resetLegacyBrowserLedger();
   const texts = await Promise.all(localCsvUrls().map(tryFetchCsv));
   const expenses: Expense[] = [];
   const seen = new Set<string>();

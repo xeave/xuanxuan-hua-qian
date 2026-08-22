@@ -368,6 +368,18 @@ function renderStats(): void {
     renderNavActions(),
   ]);
 
+  if (!state.expenses.length) {
+    const emptyPage = el("div", { class: "page" }, [
+      el("div", { class: "masthead" }, [nav]),
+      el("section", { class: "card" }, [
+        el("p", { class: "empty" }, ["还没有数据，点右上角导入 Numbers 导出的 CSV"]),
+      ]),
+      renderTabs(),
+    ]);
+    root.replaceChildren(emptyPage, fileInput);
+    return;
+  }
+
   const yearsRow = el("div", { class: "years" });
   const allYear = el(
     "button",
@@ -528,6 +540,25 @@ function render(): void {
     renderNavActions(),
   ]);
 
+  if (!state.expenses.length) {
+    const page = el("div", { class: "page" }, [
+      el("div", { class: "masthead" }, [nav]),
+    ]);
+    if (state.banner && (state.banner.kind === "error" || state.banner.kind === "success")) {
+      page.append(
+        el("p", { class: `toast toast-${state.banner.kind}` }, [state.banner.text]),
+      );
+    }
+    page.append(
+      el("section", { class: "card" }, [
+        el("p", { class: "empty" }, ["还没有数据，点右上角导入 Numbers 导出的 CSV"]),
+      ]),
+      renderTabs(),
+    );
+    root.replaceChildren(page, fileInput);
+    return;
+  }
+
   const period = el("div", { class: "period" });
   const prev = el("button", { class: "period-btn", type: "button", "aria-label": "上个月" }, ["‹"]);
   if (prevDisabled) prev.disabled = true;
@@ -599,17 +630,6 @@ function render(): void {
     page.append(
       el("p", { class: `toast toast-${state.banner.kind}` }, [state.banner.text]),
     );
-  }
-
-  if (!state.expenses.length) {
-    page.append(
-      el("section", { class: "card" }, [
-        el("p", { class: "empty" }, ["还没有数据，点右上角导入 Numbers 导出的 CSV"]),
-      ]),
-    );
-    page.append(renderTabs());
-    root.replaceChildren(page, fileInput);
-    return;
   }
 
   page.append(renderCategories(categories));
