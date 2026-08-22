@@ -43,7 +43,13 @@ export function formatCompact(n: number): string {
     const text = wan >= 10 ? wan.toFixed(0) : wan.toFixed(1).replace(/\.0$/, "");
     return `${text}万`;
   }
-  return String(Math.round(n));
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+export function formatPercent(share: number): string {
+  const pct = Math.round(share * 1000) / 10;
+  return `${Number.isInteger(pct) ? String(pct) : pct.toFixed(1)}%`;
 }
 
 export function formatShortMonth(month: string): string {

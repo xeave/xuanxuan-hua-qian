@@ -19,13 +19,14 @@ import {
   formatDayHeading,
   formatMonthLabel,
   formatNumber,
+  formatPercent,
   formatShortMonth,
   formatYuan,
   navigableMonths,
   splitYuan,
 } from "./format";
-import { loadLedger } from "./load";
-import { formatParseSummary, parseCsv } from "./parse";
+import { expenseKey, loadLedger } from "./load";
+import { parseCsv } from "./parse";
 import { saveExpenses } from "./store";
 import type { Banner, DataSource, Expense, MonthKey } from "./types";
 
@@ -54,11 +55,12 @@ const fileInput = el("input", {
   class: "file-input",
   type: "file",
   accept: ".csv,text/csv,text/plain",
+  multiple: "multiple",
 });
 fileInput.addEventListener("change", () => {
-  const file = fileInput.files?.[0];
+  const files = [...(fileInput.files ?? [])];
   fileInput.value = "";
-  if (file) void importFile(file);
+  if (files.length) void importFiles(files);
 });
 
 const state: State = {
@@ -93,28 +95,56 @@ function catIcon(category: string): HTMLElement {
 function coverageNote(): string | null {
   const months = navigableMonths(state.expenses);
   if (!months.length) return null;
-  if (state.source === "sample") return "当前是示例数据，导入 CSV 后会整表替换。";
+  if (state.source === "sample") {
+    return "现在是示例账，不是你的账单。点右上角导入 CSV，可一次选多个月。";
+  }
   if (state.source === "local-file") {
     return `${formatMonthLabel(months[0])} – ${formatMonthLabel(months[months.length - 1])} · 本地`;
   }
   return null;
 }
 
-async function importFile(file: File): Promise<void> {
-  const text = await file.text();
-  const result = parseCsv(text);
-  if (!result.expenses.length) {
-    const first = result.errors[0]?.message || "导入失败";
-    state.banner = { kind: "error", text: first };
-    render();
+function sampleBanner(): HTMLElement | null {
+  if (state.source !== "sample") return null;
+  return el("p", { class: "banner-sample" }, [
+    "当前是示例数据（约 38 笔）。GitHub 网页不会带上你的真实 CSV，请点右上角「导入」，一次可选多个月份文件。",
+  ]);
+}
+
+async function importFiles(files: File[]): Promise<void> {
+  const expenses: Expense[] = [];
+  const seen = new Set<string>();
+  const errors: string[] = [];
+  for (const file of files) {
+    const result = parseCsv(await file.text());
+    if (!result.expenses.length) {
+      errors.push(`${file.name}：${result.errors[0]?.message || "没有解析到花销"}`);
+      continue;
+    }
+    for (const item of result.expenses) {
+      const key = expenseKey(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      expenses.push(item);
+    }
+  }
+  if (!expenses.length) {
+    state.banner = { kind: "error", text: errors[0] || "导入失败" };
+    paint();
     return;
   }
-  await saveExpenses(result.expenses);
-  state.expenses = result.expenses;
+  expenses.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  await saveExpenses(expenses);
+  state.expenses = expenses;
   state.source = "indexeddb";
   state.category = null;
-  state.month = defaultMonthKey(result.expenses);
-  state.banner = { kind: "success", text: formatParseSummary(result) };
+  state.month = defaultMonthKey(expenses);
+  state.year = "all";
+  const extra = errors.length ? `。${errors.length} 个文件没读成` : "";
+  state.banner = {
+    kind: "success",
+    text: `已导入 ${expenses.length} 笔，来自 ${files.length} 个文件${extra}`,
+  };
   paint();
 }
 
@@ -237,7 +267,7 @@ function renderCategories(rows: CategoryTotal[]): HTMLElement {
         ]),
         bar,
       ]),
-      el("span", { class: "cat-pct" }, [`${Math.round(row.share * 100)}%`]),
+      el("span", { class: "cat-pct" }, [formatPercent(row.share)]),
     );
     btn.addEventListener("click", () => {
       if (state.view === "stats") {
@@ -359,6 +389,9 @@ function renderStats(): void {
     }
     trend.append(bars);
   }
+  const sample = sampleBanner();
+  if (sample) page.append(sample);
+
   page.append(trend);
 
   const insight = el("section", { class: "insights" });
@@ -384,7 +417,7 @@ function renderStats(): void {
       el("div", { class: "insight-label" }, ["花得最多"]),
       el("div", { class: "insight-value" }, [top.category]),
       el("div", { class: "insight-sub" }, [
-        `${Math.round(top.share * 100)}% · ${formatYuan(top.amount)}`,
+        `${formatPercent(top.share)} · ${formatYuan(top.amount)}`,
       ]),
     );
     card.addEventListener("click", () => {
@@ -499,7 +532,7 @@ function render(): void {
     for (const row of categories.slice(0, 3)) {
       chips.append(
         el("span", { class: "hero-chip" }, [
-          `${row.category} ${Math.round(row.share * 100)}%`,
+          `${row.category} ${formatPercent(row.share)}`,
         ]),
       );
     }
@@ -509,6 +542,8 @@ function render(): void {
   const page = el("div", { class: "page" }, [
     el("div", { class: "masthead" }, [nav, period, hero]),
   ]);
+  const sample = sampleBanner();
+  if (sample) page.append(sample);
   if (state.banner && (state.banner.kind === "error" || state.banner.kind === "success")) {
     page.append(
       el("p", { class: `toast toast-${state.banner.kind}` }, [state.banner.text]),

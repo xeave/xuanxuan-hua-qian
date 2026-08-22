@@ -38,7 +38,7 @@ function localCsvUrls(): string[] {
   return urls;
 }
 
-function expenseKey(e: Expense): string {
+export function expenseKey(e: Expense): string {
   return `${e.date}|${e.category}|${e.amount}|${e.note}|${e.payMethod}`;
 }
 
