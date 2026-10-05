@@ -9,6 +9,7 @@ function omitPrivateCsv(): Plugin {
       const dataDir = join("dist", "data");
       try {
         for (const name of readdirSync(dataDir)) {
+          if (name === "六城漫游.csv") continue;
           rmSync(join(dataDir, name), { force: true, recursive: true });
         }
       } catch {
