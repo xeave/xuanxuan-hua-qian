@@ -26,6 +26,8 @@ function monthStamp(d: Date): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const BOOK_LEDGERS = ["六城漫游"];
+
 function localCsvUrls(): string[] {
   const urls = ["./data/expenses.csv"];
   const cursor = new Date(2024, 0, 1);
@@ -38,8 +40,15 @@ function localCsvUrls(): string[] {
   return urls;
 }
 
+function bookCsvUrls(): Array<{ book: string; url: string }> {
+  return BOOK_LEDGERS.map((book) => ({
+    book,
+    url: `./data/${encodeURIComponent(book)}.csv`,
+  }));
+}
+
 export function expenseKey(e: Expense): string {
-  return `${e.date}|${e.category}|${e.amount}|${e.note}|${e.payMethod}`;
+  return `${e.book}|${e.date}|${e.category}|${e.amount}|${e.note}|${e.payMethod}`;
 }
 
 const RETIRED_SAMPLE_KEYS = new Set([
@@ -101,18 +110,26 @@ function isDemoLedger(stored: Expense[]): boolean {
 
 export async function loadLedger(): Promise<LoadedLedger> {
   await resetLegacyBrowserLedger();
-  const texts = await Promise.all(localCsvUrls().map(tryFetchCsv));
+  const monthTexts = await Promise.all(localCsvUrls().map(tryFetchCsv));
+  const books = bookCsvUrls();
+  const bookTexts = await Promise.all(books.map((item) => tryFetchCsv(item.url)));
   const expenses: Expense[] = [];
   const seen = new Set<string>();
-  for (const text of texts) {
+  const add = (item: Expense): void => {
+    const key = expenseKey(item);
+    if (seen.has(key)) return;
+    seen.add(key);
+    expenses.push(item);
+  };
+  for (const text of monthTexts) {
     if (!text) continue;
-    for (const item of parseCsv(text).expenses) {
-      const key = expenseKey(item);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      expenses.push(item);
-    }
+    for (const item of parseCsv(text).expenses) add(item);
   }
+  books.forEach((book, index) => {
+    const text = bookTexts[index];
+    if (!text) return;
+    for (const item of parseCsv(text).expenses) add({ ...item, book: book.book });
+  });
   if (expenses.length) {
     expenses.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     return { expenses, source: "local-file" };

@@ -1,4 +1,4 @@
-import { monthFromDate } from "./format";
+import { periodKey } from "./format";
 import type { Expense, MonthKey } from "./types";
 
 export type CategoryTotal = {
@@ -20,7 +20,7 @@ export function filterExpenses(
   category: string | null,
 ): Expense[] {
   return expenses.filter((e) => {
-    if (month !== "all" && monthFromDate(e.date) !== month) return false;
+    if (month !== "all" && periodKey(e) !== month) return false;
     if (category && e.category !== category) return false;
     return true;
   });
@@ -67,7 +67,7 @@ export function filterByYear(expenses: Expense[], year: string | "all"): Expense
 export function byMonth(expenses: Expense[]): MonthTotal[] {
   const map = new Map<string, { amount: number; count: number }>();
   for (const e of expenses) {
-    const month = monthFromDate(e.date);
+    const month = periodKey(e);
     const cur = map.get(month) ?? { amount: 0, count: 0 };
     cur.amount += e.amount;
     cur.count += 1;

@@ -230,6 +230,7 @@ export function parseCsv(text: string, retried = false): ParseResult {
       category: categoryRaw,
       note: noteRaw,
       payMethod: payRaw,
+      book: "",
     });
   });
 

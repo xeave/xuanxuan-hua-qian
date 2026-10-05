@@ -22,6 +22,7 @@ import {
   formatPercent,
   formatShortMonth,
   formatYuan,
+  isCalendarMonth,
   navigableMonths,
   splitYuan,
 } from "./format";
@@ -621,7 +622,13 @@ function render(): void {
 
   const parts = splitYuan(total);
   const hero = el("section", { class: "hero" }, [
-    el("div", { class: "hero-kicker" }, [state.month === "all" ? "全部支出" : "本月支出"]),
+    el("div", { class: "hero-kicker" }, [
+      state.month === "all"
+        ? "全部支出"
+        : isCalendarMonth(state.month)
+          ? "本月支出"
+          : `${state.month}`,
+    ]),
     el("div", { class: "hero-amount" }, [
       el("span", { class: "hero-yen" }, ["¥"]),
       el("span", { class: "hero-int" }, [parts.int]),

@@ -4,6 +4,7 @@ export type Expense = {
   category: string;
   note: string;
   payMethod: string;
+  book: string;
 };
 
 export type DataSource = "local-file" | "indexeddb" | "empty";
