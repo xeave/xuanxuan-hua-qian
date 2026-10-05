@@ -26,7 +26,7 @@ function monthStamp(d: Date): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-const BOOK_LEDGERS = ["六城漫游"];
+const BOOK_LEDGERS = [{ book: "六城漫游", file: "liuchengmanyou.csv" }];
 
 function localCsvUrls(): string[] {
   const urls = ["./data/expenses.csv"];
@@ -41,9 +41,9 @@ function localCsvUrls(): string[] {
 }
 
 function bookCsvUrls(): Array<{ book: string; url: string }> {
-  return BOOK_LEDGERS.map((book) => ({
-    book,
-    url: `./data/${encodeURIComponent(book)}.csv`,
+  return BOOK_LEDGERS.map((item) => ({
+    book: item.book,
+    url: `./data/${item.file}`,
   }));
 }
 
