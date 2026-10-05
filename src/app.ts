@@ -381,6 +381,186 @@ function renderCategories(rows: CategoryTotal[]): HTMLElement {
   return card;
 }
 
+function spendingPersona(top: CategoryTotal | undefined): {
+  emoji: string;
+  title: string;
+  copy: string;
+} {
+  const personas: Record<string, [string, string]> = {
+    餐饮: ["🍜", "人间烟火收藏家"],
+    零食: ["🍿", "快乐零食补给官"],
+    买菜: ["🥬", "认真生活料理家"],
+    交通: ["🛣️", "永远在路上"],
+    汽车: ["🚗", "公路生活体验派"],
+    住房: ["🏠", "舒适区建筑师"],
+    房租水电: ["🛋️", "安稳生活守护者"],
+    娱乐: ["🎡", "快乐充值专家"],
+    旅游: ["🧳", "世界体验收藏家"],
+    日用: ["🪴", "生活细节主理人"],
+    服饰: ["👕", "氛围感造型师"],
+    医疗: ["🩹", "健康优先行动派"],
+  };
+  const [emoji, title] = personas[top?.category ?? ""] ?? ["✨", "随心生活探索家"];
+  const pct = top ? Math.round(top.share * 100) : 0;
+  return {
+    emoji,
+    title,
+    copy: top
+      ? `每花 100 元，约有 ${pct} 元奔向「${top.category}」`
+      : "花钱不是消失，是换一种方式陪伴生活",
+  };
+}
+
+function renderFunStats(
+  scoped: Expense[],
+  categories: CategoryTotal[],
+  total: number,
+): HTMLElement | null {
+  if (!scoped.length) return null;
+
+  const top = categories[0];
+  const persona = spendingPersona(top);
+  const days = byDay(scoped);
+  const wildDay = days.reduce((best, day) => (day.total > best.total ? day : best), days[0]);
+  const busyDay = days.reduce(
+    (best, day) => (day.items.length > best.items.length ? day : best),
+    days[0],
+  );
+  const biggest = maxExpense(scoped);
+  const uniqueDates = [...new Set(scoped.map((item) => item.date))].sort();
+  let streak = uniqueDates.length ? 1 : 0;
+  let running = streak;
+  for (let index = 1; index < uniqueDates.length; index += 1) {
+    const previous = new Date(`${uniqueDates[index - 1]}T00:00:00`).getTime();
+    const current = new Date(`${uniqueDates[index]}T00:00:00`).getTime();
+    running = current - previous === 86400000 ? running + 1 : 1;
+    streak = Math.max(streak, running);
+  }
+
+  const noteCounts = new Map<string, number>();
+  for (const item of scoped) {
+    const note = item.note.replace(/\s+/g, " ").trim();
+    if (note.length < 2) continue;
+    noteCounts.set(note, (noteCounts.get(note) ?? 0) + 1);
+  }
+  const regular = [...noteCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const topShare = Math.round((top?.share ?? 0) * 100);
+
+  const report = el("section", { class: "editorial-report" }, [
+    el("div", { class: "report-mast" }, [
+      el("span", {}, ["SPENDING FIELD NOTES"]),
+      el("span", {}, [`NO.${String(scoped.length).padStart(3, "0")}`]),
+    ]),
+  ]);
+
+  const cover = el("article", { class: "report-cover" }, [
+    el("div", { class: "report-cover-orbit" }),
+    el("div", { class: "report-cover-top" }, [
+      el("span", {}, ["你的消费主角"]),
+      el("b", {}, [`${topShare}%`]),
+    ]),
+    el("div", { class: "report-cover-word" }, [top?.category ?? "生活"]),
+    el("div", { class: "report-cover-bottom" }, [
+      el("span", { class: "report-persona-emoji" }, [persona.emoji]),
+      el("div", {}, [
+        el("strong", {}, [persona.title]),
+        el("span", {}, [persona.copy]),
+      ]),
+    ]),
+    el("div", { class: "report-cover-total" }, [
+      el("span", {}, [`${scoped.length} 次选择`]),
+      el("b", {}, [formatYuan(total)]),
+    ]),
+  ]);
+
+  const categoryRail = el("div", { class: "report-category-rail" });
+  categories.slice(0, 5).forEach((row, index) => {
+    const item = el("div", { class: "report-category-item" }, [
+      el("span", {}, [`0${index + 1}`]),
+      el("strong", {}, [row.category]),
+      el("b", {}, [formatPercent(row.share)]),
+    ]);
+    item.style.setProperty("--rail-color", categoryColor(row.category));
+    categoryRail.append(item);
+  });
+
+  const story = el("article", { class: "report-story" }, [
+    el("span", { class: "report-story-index" }, ["01 / MONEY RHYTHM"]),
+    el("p", {}, [
+      `在 ${days.length} 个有消费的日子里，`,
+      el("strong", {}, [`${wildDay.date.slice(5).replace("-", "月")}日`]),
+      ` 最舍得花，单日留下了 `,
+      el("strong", {}, [formatYuan(wildDay.total)]),
+      " 的生活痕迹。",
+    ]),
+  ]);
+
+  const records = el("div", { class: "report-records" }, [
+    el("article", { class: "report-record report-record-dark" }, [
+      el("span", {}, ["单笔冠军"]),
+      el("strong", {}, [biggest ? formatYuan(biggest.amount) : "—"]),
+      el("p", {}, [biggest ? clipNote(biggest.note) : "没有记录"]),
+      el("b", {}, ["BIGGEST"]),
+    ]),
+    el("article", { class: "report-record report-record-acid" }, [
+      el("span", {}, ["最忙一天"]),
+      el("strong", {}, [`${busyDay.items.length} 笔`]),
+      el("p", {}, [formatDayHeading(busyDay.date, false).replace(/\s周.$/, "")]),
+      el("b", {}, ["BUSIEST"]),
+    ]),
+    el("article", { class: "report-record report-record-paper" }, [
+      el("span", {}, ["最长连续记录"]),
+      el("strong", {}, [`${streak} 天`]),
+      el("p", {}, [`一共点亮 ${days.length} 个消费日`]),
+      el("b", {}, ["STREAK"]),
+    ]),
+    el("article", { class: "report-record report-record-pink" }, [
+      el("span", {}, ["账单常客"]),
+      el("strong", {}, [regular && regular[1] > 1 ? `${regular[1]} 次` : "仅此一次"]),
+      el("p", {}, [regular && regular[1] > 1 ? clipNote(regular[0]) : "每一笔都不重样"]),
+      el("b", {}, ["REGULAR"]),
+    ]),
+  ]);
+
+  const fingerprint = el("article", { class: "report-fingerprint" }, [
+    el("div", { class: "report-fingerprint-head" }, [
+      el("span", {}, ["02 / SPENDING DNA"]),
+      el("b", {}, ["消费构成"]),
+    ]),
+  ]);
+  const lines = el("div", { class: "report-fingerprint-lines" });
+  categories.slice(0, 6).forEach((row) => {
+    const fill = el("i");
+    fill.style.width = `${Math.max(row.share * 100, 3)}%`;
+    fill.style.background = categoryColor(row.category);
+    lines.append(
+      el("div", { class: "report-fingerprint-line" }, [
+        el("span", {}, [row.category]),
+        el("div", {}, [fill]),
+        el("b", {}, [formatYuan(row.amount)]),
+      ]),
+    );
+  });
+  fingerprint.append(lines);
+
+  report.append(
+    cover,
+    categoryRail,
+    story,
+    records,
+    fingerprint,
+    el("div", { class: "report-signoff" }, [
+      el("span", {}, ["THE VERDICT"]),
+      el("strong", {}, [
+        top
+          ? `你不是在乱花钱，你只是在认真投票给「${top.category}」。`
+          : "每一笔花销，都在替生活投票。",
+      ]),
+    ]),
+  );
+  return report;
+}
+
 function renderStats(): void {
   const scoped = filterByYear(state.expenses, state.year);
   const total = sumAmount(scoped);
@@ -458,6 +638,9 @@ function renderStats(): void {
   const page = el("div", { class: "page" }, [
     el("div", { class: "masthead" }, [nav, yearsRow, hero]),
   ]);
+
+  const funStats = renderFunStats(scoped, categories, total);
+  if (funStats) page.append(funStats);
 
   const trend = el("section", { class: "card" }, [
     el("div", { class: "card-head" }, [
