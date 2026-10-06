@@ -155,6 +155,12 @@ function renderPageHead(title: string): HTMLElement {
   ]);
 }
 
+function bookNameFromFile(fileName: string): string {
+  const stem = fileName.replace(/\.[^.]+$/, "").trim();
+  if (!stem || /^(?:\d{6}|expenses|花销账本)$/i.test(stem)) return "";
+  return stem === "liuchengmanyou" ? "六城漫游" : stem;
+}
+
 async function importFiles(files: File[]): Promise<void> {
   const expenses: Expense[] = [];
   const seen = new Set<string>();
@@ -168,15 +174,17 @@ async function importFiles(files: File[]): Promise<void> {
   for (const file of files) {
     const text = decodeCsvBytes(await file.arrayBuffer());
     const result = parseCsv(text);
+    const book = bookNameFromFile(file.name);
     if (!result.expenses.length) {
       errors.push(`${file.name || "未命名文件"}：${result.errors[0]?.message || "没有解析到花销"}`);
       continue;
     }
     for (const item of result.expenses) {
-      const key = expenseKey(item);
+      const imported = { ...item, book };
+      const key = expenseKey(imported);
       if (seen.has(key)) continue;
       seen.add(key);
-      expenses.push(item);
+      expenses.push(imported);
     }
   }
   const baseCount = hasSavedLedger() ? state.expenses.length : 0;

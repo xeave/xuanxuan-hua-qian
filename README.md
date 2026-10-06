@@ -36,17 +36,17 @@ npm run dev
 
 ## 导入真实数据
 
-页面右上角 **导入 CSV**。导入会**整表替换**上次的数据（不和旧文件合并），并记在这个浏览器的 IndexedDB 里。刷新还在；换浏览器、清站点数据或换手机后需要重新导入。
+页面右上角 **导入 CSV**。可一次选择多份文件，也可分多次导入；重复记录会自动忽略。数据记在这个浏览器的 IndexedDB 里，刷新还在；换浏览器、清站点数据或换手机后需要重新导入。文件名为 `六城漫游.csv` 时，会自动显示成独立的「六城漫游」账本。
 
-更省事的本地方式：把 Numbers 按月导出的 CSV 放到 `public/data/`，文件名用 `YYYYMM.csv`（例如 `202603.csv`），再跑 `npm run dev`。看板会自动合并这些文件。按月账单已 gitignore；单独账本 `六城漫游.csv` 会进仓库和 Pages。
+更省事的本地方式：把 Numbers 按月导出的 CSV 放到 `public/data/`，文件名用 `YYYYMM.csv`（例如 `202603.csv`），再跑 `npm run dev`。看板会自动合并这些文件。`public/data/*.csv` 都已 gitignore。
 
 ## 隐私
 
 | 可以进 Git | 不要进 Git |
 | --- | --- |
-| 看板代码、本 README、`六城漫游.csv` | `public/data/YYYYMM.csv`、其他真实月账单、Numbers 原文件 |
+| 看板代码、本 README | `public/data/*.csv`、任何真实账单、Numbers 原文件 |
 
-GitHub Pages 会带上六城漫游这本账。按月账单只留在本机或浏览器里。
+GitHub Pages 不带任何账单。真实数据只留在本机或导入数据的浏览器里。
 
 ## 发布到 GitHub Pages
 
@@ -54,4 +54,4 @@ GitHub Pages 会带上六城漫游这本账。按月账单只留在本机或浏�
 2. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
 3. 推送 `main` 后，工作流 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) 会构建并发布。
 
-站点里默认能看到六城漫游。按月账单仍需在页面里导入。
+站点默认是空账。打开后从页面右上角导入自己的 CSV。

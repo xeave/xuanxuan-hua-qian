@@ -7,8 +7,6 @@ dist
 data/expenses.csv
 public/data/expenses.csv
 public/data/*.csv
-!public/data/六城漫游.csv
-!public/data/liuchengmanyou.csv
 public/xuanxuan-hua-xiao/
 *.numbers
 .env

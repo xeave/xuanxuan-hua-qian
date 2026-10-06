@@ -26,8 +26,6 @@ function monthStamp(d: Date): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-const BOOK_LEDGERS = [{ book: "六城漫游", file: "liuchengmanyou.csv" }];
-
 function localCsvUrls(): string[] {
   const urls = ["./data/expenses.csv"];
   const cursor = new Date(2024, 0, 1);
@@ -38,13 +36,6 @@ function localCsvUrls(): string[] {
     cursor.setMonth(cursor.getMonth() + 1);
   }
   return urls;
-}
-
-function bookCsvUrls(): Array<{ book: string; url: string }> {
-  return BOOK_LEDGERS.map((item) => ({
-    book: item.book,
-    url: `./data/${item.file}`,
-  }));
 }
 
 export function expenseKey(e: Expense): string {
@@ -111,8 +102,6 @@ function isDemoLedger(stored: Expense[]): boolean {
 export async function loadLedger(): Promise<LoadedLedger> {
   await resetLegacyBrowserLedger();
   const monthTexts = await Promise.all(localCsvUrls().map(tryFetchCsv));
-  const books = bookCsvUrls();
-  const bookTexts = await Promise.all(books.map((item) => tryFetchCsv(item.url)));
   const expenses: Expense[] = [];
   const seen = new Set<string>();
   const add = (item: Expense): void => {
@@ -125,11 +114,6 @@ export async function loadLedger(): Promise<LoadedLedger> {
     if (!text) continue;
     for (const item of parseCsv(text).expenses) add(item);
   }
-  books.forEach((book, index) => {
-    const text = bookTexts[index];
-    if (!text) return;
-    for (const item of parseCsv(text).expenses) add({ ...item, book: book.book });
-  });
   if (expenses.length) {
     expenses.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     return { expenses, source: "local-file" };
