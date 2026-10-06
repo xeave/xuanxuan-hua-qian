@@ -101,6 +101,15 @@ function isDemoLedger(stored: Expense[]): boolean {
 
 export async function loadLedger(): Promise<LoadedLedger> {
   await resetLegacyBrowserLedger();
+
+  const stored = await loadStoredExpenses();
+  if (stored?.length && !isDemoLedger(stored)) {
+    return { expenses: stored, source: "indexeddb" };
+  }
+  if (stored?.length) {
+    await clearStoredExpenses();
+  }
+
   const monthTexts = await Promise.all(localCsvUrls().map(tryFetchCsv));
   const expenses: Expense[] = [];
   const seen = new Set<string>();
@@ -117,14 +126,6 @@ export async function loadLedger(): Promise<LoadedLedger> {
   if (expenses.length) {
     expenses.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     return { expenses, source: "local-file" };
-  }
-
-  const stored = await loadStoredExpenses();
-  if (stored?.length && !isDemoLedger(stored)) {
-    return { expenses: stored, source: "indexeddb" };
-  }
-  if (stored?.length) {
-    await clearStoredExpenses();
   }
 
   return { expenses: [], source: "empty" };
